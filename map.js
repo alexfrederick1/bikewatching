@@ -20,6 +20,8 @@ const bikeLaneStyle = {
 
 // Wait for the map to load before adding the bike lane data
 map.on('load', async () => {
+  console.log("Map has loaded successfully!");
+
   // Add Boston bike lanes data source
   map.addSource('boston_route', {
     type: 'geojson',
@@ -34,10 +36,12 @@ map.on('load', async () => {
     paint: bikeLaneStyle
   });
 
-  // Add Cambridge bike lanes data source
+  console.log("Boston bike lanes added!");
+
+  // Add Cambridge bike lanes data source (fixed URL)
   map.addSource('cambridge_route', {
     type: 'geojson',
-    data: 'https://data.cambridgema.gov/resource/hpnt-2n5v.geojson'
+    data: 'https://data.cambridgema.gov/api/geospatial/hpnt-2n5v?method=export&format=GeoJSON'
   });
 
   // Add a layer to visualize Cambridge bike lanes
@@ -47,4 +51,6 @@ map.on('load', async () => {
     source: 'cambridge_route',
     paint: bikeLaneStyle
   });
+
+  console.log("Cambridge bike lanes added!");
 });
