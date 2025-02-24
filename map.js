@@ -5,7 +5,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYWxleGZyZWRlcmljayIsImEiOiJjbTdqb2tyODAwOHMyM
 const map = new mapboxgl.Map({
   container: 'map', // ID of the div where the map will render
   style: 'mapbox://styles/mapbox/streets-v12', // Map style
-  center: [-71.09415, 42.36027], // [longitude, latitude]
+  center: [-71.09415, 42.36027], // Longitude, Latitude
   zoom: 12, // Initial zoom level
   minZoom: 5, // Minimum allowed zoom
   maxZoom: 18 // Maximum allowed zoom
@@ -38,7 +38,7 @@ map.on('load', async () => {
 
   console.log("Boston bike lanes added!");
 
-  // Add Cambridge bike lanes data source (fixed URL)
+  // Add Cambridge bike lanes data source (FIXED URL)
   map.addSource('cambridge_route', {
     type: 'geojson',
     data: 'https://data.cambridgema.gov/api/geospatial/hpnt-2n5v?method=export&format=GeoJSON'
