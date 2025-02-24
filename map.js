@@ -11,9 +11,23 @@ const map = new mapboxgl.Map({
   maxZoom: 18 // Maximum allowed zoom
 });
 
+// Wait for the map to load before adding the bike lane data
+map.on('load', async () => {
+  // Add a GeoJSON source for Boston's bike lanes
+  map.addSource('boston_route', {
+    type: 'geojson',
+    data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson'
+  });
 
-// Import Mapbox as an ESM module
-import mapboxgl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/+esm';
-
-// Check that Mapbox GL JS is loaded
-console.log("Mapbox GL JS Loaded:", mapboxgl);
+  // Add a layer to visualize the bike lanes
+  map.addLayer({
+    id: 'bike-lanes',
+    type: 'line',
+    source: 'boston_route',
+    paint: {
+      'line-color': 'green', // Bike lanes in green
+      'line-width': 3,       // Line thickness
+      'line-opacity': 0.4    // Transparency
+    }
+  });
+});
