@@ -19,17 +19,15 @@ let radiusScale;
 let stationFlow;
 
 function getCoords(station) {
-  const lon = +station.Long || +station.longitude;
-  const lat = +station.Lat || +station.latitude;
+  const lon = +station.lon || +station.Long || +station.longitude;
+  const lat = +station.lat || +station.Lat || +station.latitude;
 
   if (isNaN(lon) || isNaN(lat)) {
-    console.error("❌ Invalid coordinates for station:", station);
     return { cx: 0, cy: 0 };
   }
 
-  const point = new mapboxgl.LngLat(lon, lat);
-  const { x, y } = map.project(point);
-  return { cx: x, cy: y };
+  const point = map.project([lon, lat]);
+  return { cx: point.x, cy: point.y };
 }
 
 function formatTime(minutes) {
@@ -46,7 +44,7 @@ function computeStationTraffic(stations, trips) {
   const arrivals = d3.rollup(trips, v => v.length, d => d.end_station_id);
 
   return stations.map(station => {
-    let id = station.Number;
+    let id = station.station_id || station.Number;
     station.arrivals = arrivals.get(id) ?? 0;
     station.departures = departures.get(id) ?? 0;
     station.totalTraffic = station.arrivals + station.departures;
@@ -68,8 +66,6 @@ function filterTripsByTime(trips, timeFilter) {
 }
 
 map.on('load', async () => {
-  console.log("✅ Map has loaded successfully!");
-
   map.addSource('boston_route', {
       type: 'geojson',
       data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson'
@@ -105,18 +101,15 @@ map.on('load', async () => {
     const trafficUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
 
     let jsonData = await d3.json(stationUrl);
-    let stations = jsonData.data.stations;
-    console.log('✅ Loaded Stations:', stations);
+    let stations = jsonData.data?.stations || [];
 
     let trips = await d3.csv(trafficUrl, trip => {
       trip.started_at = new Date(trip.started_at);
       trip.ended_at = new Date(trip.ended_at);
       return trip;
     });
-    console.log('✅ Loaded and parsed Traffic Data:', trips);
 
     stations = computeStationTraffic(stations, trips);
-    console.log('✅ Enriched Stations with Traffic:', stations);
 
     const timeSlider = document.getElementById('time-slider');
     const selectedTime = document.getElementById('selected-time');
@@ -132,7 +125,7 @@ map.on('load', async () => {
 
     const svg = d3.select('#map').select('svg');
     const circles = svg.selectAll('circle')
-      .data(stations, d => d.short_name)
+      .data(stations, d => d.station_id || d.Number)
       .enter()
       .append('circle')
       .attr('r', d => radiusScale(d.totalTraffic))
@@ -160,7 +153,7 @@ map.on('load', async () => {
       timeFilter === -1 ? radiusScale.range([0, 25]) : radiusScale.range([3, 50]);
 
       circles
-        .data(filteredStations, d => d.short_name)
+        .data(filteredStations, d => d.station_id || d.Number)
         .join('circle')
         .attr('r', d => radiusScale(d.totalTraffic));
     }
