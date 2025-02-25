@@ -1,4 +1,3 @@
-// Import D3.js as an ES module
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiYWxleGZyZWRlcmljayIsImEiOiJjbTdqb2tyODAwOHMyMmpwcnZ2a2J2cWtxIn0.8HhAl2KvLvBxaqr2t7l75Q';
@@ -108,10 +107,12 @@ map.on('load', async () => {
       }
   });
 
-  const stationUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
-  const trafficUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
+  
 
   try {
+
+    const stationUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
+    const trafficUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
     // Fetch station data
     let jsonData = await d3.json(stationUrl);
     let stations = jsonData.data.stations;
