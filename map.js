@@ -18,6 +18,7 @@ let circles;
 let radiusScale;
 let stationFlow;
 
+// Helper function to convert latitude & longitude to pixel coordinates
 function getCoords(station) {
   const lon = +station.lon || +station.Long || +station.longitude;
   const lat = +station.lat || +station.Lat || +station.latitude;
@@ -101,7 +102,7 @@ map.on('load', async () => {
     const trafficUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
 
     let jsonData = await d3.json(stationUrl);
-    let stations = jsonData.data?.stations || [];
+    stations = jsonData.data?.stations || [];
 
     let trips = await d3.csv(trafficUrl, trip => {
       trip.started_at = new Date(trip.started_at);
@@ -124,7 +125,8 @@ map.on('load', async () => {
       .range([0, 0.5, 1]);
 
     const svg = d3.select('#map').select('svg');
-    const circles = svg.selectAll('circle')
+
+    circles = svg.selectAll('circle')
       .data(stations, d => d.station_id || d.Number)
       .enter()
       .append('circle')
@@ -132,7 +134,7 @@ map.on('load', async () => {
       .attr('fill', 'steelblue')
       .attr('stroke', 'white')
       .attr('stroke-width', 1)
-      .attr('opacity', 0.6)
+      .attr('opacity', 0.8)
       .each(function(d) {
         d3.select(this)
           .append('title')
@@ -144,13 +146,14 @@ map.on('load', async () => {
         .attr('cx', d => getCoords(d).cx)
         .attr('cy', d => getCoords(d).cy);
     }
+
     updatePositions();
 
     function updateScatterPlot(timeFilter) {
       const filteredTrips = filterTripsByTime(trips, timeFilter);
       const filteredStations = computeStationTraffic(stations, filteredTrips);
 
-      timeFilter === -1 ? radiusScale.range([0, 25]) : radiusScale.range([3, 50]);
+      radiusScale.range(timeFilter === -1 ? [0, 25] : [3, 50]);
 
       circles
         .data(filteredStations, d => d.station_id || d.Number)
