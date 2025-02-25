@@ -1,3 +1,6 @@
+// Import D3.js as an ES module
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
+
 // Set your Mapbox access token here
 mapboxgl.accessToken = 'pk.eyJ1IjoiYWxleGZyZWRlcmljayIsImEiOiJjbTdqb2tyODAwOHMyMmpwcnZ2a2J2cWtxIn0.8HhAl2KvLvBxaqr2t7l75Q';
 
@@ -38,7 +41,7 @@ map.on('load', async () => {
 
   console.log("Boston bike lanes added!");
 
-  // Add Cambridge bike lanes data source (FIXED URL)
+  // Add Cambridge bike lanes data source
   map.addSource('cambridge_route', {
     type: 'geojson',
     data: 'https://data.cambridgema.gov/api/geospatial/hpnt-2n5v?method=export&format=GeoJSON'
@@ -53,4 +56,22 @@ map.on('load', async () => {
   });
 
   console.log("Cambridge bike lanes added!");
+
+  // 🟢 Step 3.1: Fetch and Parse Bluebikes Station Data
+  let jsonData;
+  try {
+    const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
+    
+    // Await JSON fetch
+    jsonData = await d3.json(jsonurl);
+    
+    console.log('Loaded JSON Data:', jsonData); // Log to verify structure
+
+    // Extract station data
+    let stations = jsonData.data.stations;
+    console.log('Stations Array:', stations); // Verify the array of stations
+
+  } catch (error) {
+    console.error('Error loading JSON:', error); // Handle errors
+  }
 });
