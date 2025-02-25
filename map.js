@@ -23,25 +23,14 @@ const bikeLaneStyle = {
 
 // Helper function to convert latitude & longitude to pixel coordinates
 function getCoords(station) {
-  console.log("Station Data:", station); // Log full station object
-
-  // Ensure we are using the correct key names (Lat, Long or latitude, longitude)
-  const lon = +station.Long || +station.longitude; // Handle different key names
-  const lat = +station.Lat || +station.latitude;
-
-  if (isNaN(lon) || isNaN(lat)) {
-    console.error("❌ Invalid coordinates for station:", station); // Log issue
-    return { cx: 0, cy: 0 }; // Return default coordinates to avoid crash
-  }
-
-  const point = new mapboxgl.LngLat(lon, lat); // Convert to Mapbox LngLat
+  const point = new mapboxgl.LngLat(+station.Long, +station.Lat); // Convert to Mapbox LngLat
   const { x, y } = map.project(point); // Project to pixel coordinates
-  return { cx: x, cy: y }; // Return as object for use in SVG attributes
+  return { cx: x, cy: y }; // Return object for use in SVG attributes
 }
 
 // Wait for the map to load before adding bike lanes and stations
 map.on('load', async () => {
-  console.log("✅ Map has loaded successfully!");
+  console.log("Map has loaded successfully!");
 
   // Add Boston bike lanes data source
   map.addSource('boston_route', {
@@ -57,7 +46,7 @@ map.on('load', async () => {
     paint: bikeLaneStyle
   });
 
-  console.log("✅ Boston bike lanes added!");
+  console.log("Boston bike lanes added!");
 
   // Add Cambridge bike lanes data source
   map.addSource('cambridge_route', {
@@ -73,9 +62,10 @@ map.on('load', async () => {
     paint: bikeLaneStyle
   });
 
-  console.log("✅ Cambridge bike lanes added!");
+  console.log("Cambridge bike lanes added!");
 
   // 🟢 Step 3.3: Fetch and Display Bluebikes Stations
+
   let jsonData;
   try {
     const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
@@ -83,11 +73,11 @@ map.on('load', async () => {
     // Await JSON fetch
     jsonData = await d3.json(jsonurl);
     
-    console.log('✅ Loaded JSON Data:', jsonData); // Log to verify structure
+    console.log('Loaded JSON Data:', jsonData); // Log to verify structure
 
     // Extract station data
     let stations = jsonData.data.stations;
-    console.log('✅ Stations Array:', stations); // Verify the array of stations
+    console.log('Stations Array:', stations); // Verify the array of stations
 
     // Select the SVG inside the map container
     const svg = d3.select('#map').select('svg');
@@ -106,16 +96,8 @@ map.on('load', async () => {
     // Function to update circle positions when the map moves/zooms
     function updatePositions() {
       circles
-        .attr('cx', d => {
-          const { cx } = getCoords(d);
-          console.log('📍 Projected X:', cx);
-          return cx;
-        })
-        .attr('cy', d => {
-          const { cy } = getCoords(d);
-          console.log('📍 Projected Y:', cy);
-          return cy;
-        });
+        .attr('cx', d => getCoords(d).cx)  // Set the x-position using projected coordinates
+        .attr('cy', d => getCoords(d).cy); // Set the y-position using projected coordinates
     }
 
     // Initial position update when map loads
@@ -128,6 +110,6 @@ map.on('load', async () => {
     map.on('moveend', updatePositions);  // Final adjustment after movement ends
 
   } catch (error) {
-    console.error('❌ Error loading JSON:', error); // Handle errors
+    console.error('Error loading JSON:', error); // Handle errors
   }
 });
