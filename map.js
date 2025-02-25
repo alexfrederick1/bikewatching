@@ -21,7 +21,14 @@ const bikeLaneStyle = {
   'line-opacity': 0.6      // Less transparent for better contrast
 };
 
-// Wait for the map to load before adding the bike lane data
+// Helper function to convert latitude & longitude to pixel coordinates
+function getCoords(station) {
+  const point = new mapboxgl.LngLat(+station.Long, +station.Lat); // Convert to Mapbox LngLat
+  const { x, y } = map.project(point); // Project to pixel coordinates
+  return { cx: x, cy: y }; // Return object for use in SVG attributes
+}
+
+// Wait for the map to load before adding bike lanes and stations
 map.on('load', async () => {
   console.log("Map has loaded successfully!");
 
@@ -57,7 +64,8 @@ map.on('load', async () => {
 
   console.log("Cambridge bike lanes added!");
 
-  // 🟢 Step 3.1: Fetch and Parse Bluebikes Station Data
+  // 🟢 Step 3.3: Fetch and Display Bluebikes Stations
+
   let jsonData;
   try {
     const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
@@ -70,6 +78,36 @@ map.on('load', async () => {
     // Extract station data
     let stations = jsonData.data.stations;
     console.log('Stations Array:', stations); // Verify the array of stations
+
+    // Select the SVG inside the map container
+    const svg = d3.select('#map').select('svg');
+
+    // Append circles to the SVG for each station
+    const circles = svg.selectAll('circle')
+      .data(stations)
+      .enter()
+      .append('circle')
+      .attr('r', 5)               // Radius of the circle
+      .attr('fill', 'steelblue')  // Circle fill color
+      .attr('stroke', 'white')    // Circle border color
+      .attr('stroke-width', 1)    // Circle border thickness
+      .attr('opacity', 0.8);      // Circle opacity
+
+    // Function to update circle positions when the map moves/zooms
+    function updatePositions() {
+      circles
+        .attr('cx', d => getCoords(d).cx)  // Set the x-position using projected coordinates
+        .attr('cy', d => getCoords(d).cy); // Set the y-position using projected coordinates
+    }
+
+    // Initial position update when map loads
+    updatePositions();
+
+    // Reposition markers on map interactions
+    map.on('move', updatePositions);     // Update during map movement
+    map.on('zoom', updatePositions);     // Update during zooming
+    map.on('resize', updatePositions);   // Update on window resize
+    map.on('moveend', updatePositions);  // Final adjustment after movement ends
 
   } catch (error) {
     console.error('Error loading JSON:', error); // Handle errors
