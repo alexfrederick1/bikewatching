@@ -18,7 +18,6 @@ let circles;
 let radiusScale;
 let stationFlow;
 
-// Helper function to convert latitude & longitude to pixel coordinates
 function getCoords(station) {
   const lon = +station.Long || +station.longitude;
   const lat = +station.Lat || +station.latitude;
@@ -33,18 +32,15 @@ function getCoords(station) {
   return { cx: x, cy: y };
 }
 
-// Helper function to format time
 function formatTime(minutes) {
   const date = new Date(0, 0, 0, 0, minutes);
-  return date.toLocaleString('en-US', { timeStyle: 'short' }); // HH:MM AM/PM format
+  return date.toLocaleString('en-US', { timeStyle: 'short' });
 }
 
-// Convert Date object to minutes since midnight
 function minutesSinceMidnight(date) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
-// Compute traffic (arrivals, departures, total trips)
 function computeStationTraffic(stations, trips) {
   const departures = d3.rollup(trips, v => v.length, d => d.start_station_id);
   const arrivals = d3.rollup(trips, v => v.length, d => d.end_station_id);
@@ -58,7 +54,6 @@ function computeStationTraffic(stations, trips) {
   });
 }
 
-// Filter trips based on selected time range
 function filterTripsByTime(trips, timeFilter) {
   return timeFilter === -1
     ? trips
@@ -72,11 +67,9 @@ function filterTripsByTime(trips, timeFilter) {
       });
 }
 
-// Wait for the map to load before adding data
 map.on('load', async () => {
   console.log("✅ Map has loaded successfully!");
 
-  // Load Boston & Cambridge Bike Lanes
   map.addSource('boston_route', {
       type: 'geojson',
       data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson'
@@ -108,15 +101,13 @@ map.on('load', async () => {
   });
 
   try {
-
     const stationUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
     const trafficUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
-    // Fetch station data
+
     let jsonData = await d3.json(stationUrl);
     let stations = jsonData.data.stations;
     console.log('✅ Loaded Stations:', stations);
 
-    // Fetch and parse traffic data
     let trips = await d3.csv(trafficUrl, trip => {
       trip.started_at = new Date(trip.started_at);
       trip.ended_at = new Date(trip.ended_at);
@@ -124,21 +115,21 @@ map.on('load', async () => {
     });
     console.log('✅ Loaded and parsed Traffic Data:', trips);
 
-    // Compute initial traffic data
     stations = computeStationTraffic(stations, trips);
     console.log('✅ Enriched Stations with Traffic:', stations);
 
-    // Select the slider & UI elements
     const timeSlider = document.getElementById('time-slider');
     const selectedTime = document.getElementById('selected-time');
     const anyTimeLabel = document.getElementById('any-time');
 
-    // Create a square root scale for traffic-based marker size
     const radiusScale = d3.scaleSqrt()
       .domain([0, d3.max(stations, d => d.totalTraffic)])
       .range([0, 25]);
 
-    // Select the SVG and create circles with D3
+    stationFlow = d3.scaleQuantize()
+      .domain([0, 1])
+      .range([0, 0.5, 1]);
+
     const svg = d3.select('#map').select('svg');
     const circles = svg.selectAll('circle')
       .data(stations, d => d.short_name)
@@ -155,7 +146,6 @@ map.on('load', async () => {
           .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
       });
 
-    // Function to update circle positions
     function updatePositions() {
       circles
         .attr('cx', d => getCoords(d).cx)
@@ -163,12 +153,10 @@ map.on('load', async () => {
     }
     updatePositions();
 
-    // Function to update the scatterplot based on time filter
     function updateScatterPlot(timeFilter) {
       const filteredTrips = filterTripsByTime(trips, timeFilter);
       const filteredStations = computeStationTraffic(stations, filteredTrips);
 
-      // Dynamically adjust scale range based on filtering
       timeFilter === -1 ? radiusScale.range([0, 25]) : radiusScale.range([3, 50]);
 
       circles
@@ -177,7 +165,6 @@ map.on('load', async () => {
         .attr('r', d => radiusScale(d.totalTraffic));
     }
 
-    // Function to update the time display when slider moves
     function updateTimeDisplay() {
       let timeFilter = Number(timeSlider.value);
 
@@ -192,11 +179,9 @@ map.on('load', async () => {
       updateScatterPlot(timeFilter);
     }
 
-    // Bind the slider event to update the display
     timeSlider.addEventListener('input', updateTimeDisplay);
     updateTimeDisplay();
 
-    // Update circles on map interactions
     map.on('move', updatePositions);
     map.on('zoom', updatePositions);
     map.on('resize', updatePositions);
