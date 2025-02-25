@@ -23,93 +23,94 @@ const bikeLaneStyle = {
 
 // Helper function to convert latitude & longitude to pixel coordinates
 function getCoords(station) {
-  const point = new mapboxgl.LngLat(+station.Long, +station.Lat); // Convert to Mapbox LngLat
-  const { x, y } = map.project(point); // Project to pixel coordinates
-  return { cx: x, cy: y }; // Return object for use in SVG attributes
+  const lon = +station.Long || +station.longitude;
+  const lat = +station.Lat || +station.latitude;
+
+  if (isNaN(lon) || isNaN(lat)) {
+    console.error("❌ Invalid coordinates for station:", station);
+    return { cx: 0, cy: 0 };
+  }
+
+  const point = new mapboxgl.LngLat(lon, lat);
+  const { x, y } = map.project(point);
+  return { cx: x, cy: y };
 }
 
 // Wait for the map to load before adding bike lanes and stations
 map.on('load', async () => {
-  console.log("Map has loaded successfully!");
+  console.log("✅ Map has loaded successfully!");
 
-  // Add Boston bike lanes data source
-  map.addSource('boston_route', {
-    type: 'geojson',
-    data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson'
-  });
+  // Fetch Bluebikes station data
+  const stationUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
+  const trafficUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
 
-  // Add a layer to visualize Boston bike lanes
-  map.addLayer({
-    id: 'bike-lanes-boston',
-    type: 'line',
-    source: 'boston_route',
-    paint: bikeLaneStyle
-  });
-
-  console.log("Boston bike lanes added!");
-
-  // Add Cambridge bike lanes data source
-  map.addSource('cambridge_route', {
-    type: 'geojson',
-    data: 'https://data.cambridgema.gov/api/geospatial/hpnt-2n5v?method=export&format=GeoJSON'
-  });
-
-  // Add a layer to visualize Cambridge bike lanes
-  map.addLayer({
-    id: 'bike-lanes-cambridge',
-    type: 'line',
-    source: 'cambridge_route',
-    paint: bikeLaneStyle
-  });
-
-  console.log("Cambridge bike lanes added!");
-
-  // 🟢 Step 3.3: Fetch and Display Bluebikes Stations
-
-  let jsonData;
   try {
-    const jsonurl = 'https://dsc106.com/labs/lab07/data/bluebikes-stations.json';
-    
-    // Await JSON fetch
-    jsonData = await d3.json(jsonurl);
-    
-    console.log('Loaded JSON Data:', jsonData); // Log to verify structure
-
-    // Extract station data
+    // Fetch station data
+    let jsonData = await d3.json(stationUrl);
     let stations = jsonData.data.stations;
-    console.log('Stations Array:', stations); // Verify the array of stations
+    console.log('✅ Loaded Stations:', stations);
+
+    // Fetch traffic data
+    const trips = await d3.csv(trafficUrl);
+    console.log('✅ Loaded Traffic Data:', trips);
+
+    // Compute departures and arrivals using d3.rollup()
+    const departures = d3.rollup(trips, v => v.length, d => d.start_station_id);
+    const arrivals = d3.rollup(trips, v => v.length, d => d.end_station_id);
+
+    // Enrich stations with traffic data
+    stations = stations.map(station => {
+      let id = station.Number;
+      station.arrivals = arrivals.get(id) ?? 0;
+      station.departures = departures.get(id) ?? 0;
+      station.totalTraffic = station.arrivals + station.departures;
+      return station;
+    });
+
+    console.log('✅ Enriched Stations with Traffic:', stations);
 
     // Select the SVG inside the map container
     const svg = d3.select('#map').select('svg');
+
+    // Create a square root scale for traffic-based marker size
+    const radiusScale = d3.scaleSqrt()
+      .domain([0, d3.max(stations, d => d.totalTraffic)])
+      .range([0, 25]); // Ensuring proportional size scaling
 
     // Append circles to the SVG for each station
     const circles = svg.selectAll('circle')
       .data(stations)
       .enter()
       .append('circle')
-      .attr('r', 5)               // Radius of the circle
-      .attr('fill', 'steelblue')  // Circle fill color
-      .attr('stroke', 'white')    // Circle border color
-      .attr('stroke-width', 1)    // Circle border thickness
-      .attr('opacity', 0.8);      // Circle opacity
+      .attr('r', d => radiusScale(d.totalTraffic)) // Scale size based on total traffic
+      .attr('fill', 'steelblue')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.6) // Improve visibility
+      .each(function(d) {
+        // Add tooltips with traffic data
+        d3.select(this)
+          .append('title')
+          .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+      });
 
     // Function to update circle positions when the map moves/zooms
     function updatePositions() {
       circles
-        .attr('cx', d => getCoords(d).cx)  // Set the x-position using projected coordinates
-        .attr('cy', d => getCoords(d).cy); // Set the y-position using projected coordinates
+        .attr('cx', d => getCoords(d).cx)
+        .attr('cy', d => getCoords(d).cy);
     }
 
     // Initial position update when map loads
     updatePositions();
 
     // Reposition markers on map interactions
-    map.on('move', updatePositions);     // Update during map movement
-    map.on('zoom', updatePositions);     // Update during zooming
-    map.on('resize', updatePositions);   // Update on window resize
-    map.on('moveend', updatePositions);  // Final adjustment after movement ends
+    map.on('move', updatePositions);
+    map.on('zoom', updatePositions);
+    map.on('resize', updatePositions);
+    map.on('moveend', updatePositions);
 
   } catch (error) {
-    console.error('Error loading JSON:', error); // Handle errors
+    console.error('❌ Error loading data:', error);
   }
 });

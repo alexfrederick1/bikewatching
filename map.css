@@ -22,4 +22,35 @@ html, body {
     height: 100%;
     pointer-events: none; /* Allows interaction with the map below */
   }
+
+  #map svg circle {
+    pointer-events: auto; /* Allow tooltips to appear */
+    fill-opacity: 0.6; /* Slightly transparent for better layering */
+  }
+
+  header {
+    display: flex;
+    gap: 1em;
+    align-items: baseline;
+    padding: 0.5em;
+  }
+  
+  label {
+    margin-left: auto; /* Push slider to the right */
+  }
+  
+  #time-slider {
+    width: 200px; /* Adjust slider width */
+  }
+  
+  #selected-time, #any-time {
+    display: block; /* Prevent layout shifting */
+  }
+  
+  #any-time {
+    font-style: italic;
+    color: gray;
+  }
+  
+  
   
